@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pachyderm/pachyderm/v2/src/enterprise"
+	"github.com/pachyderm/pachyderm/v2/src/internal/clientsdk"
 	"github.com/pachyderm/pachyderm/v2/src/internal/config"
 	"github.com/pachyderm/pachyderm/v2/src/internal/errors"
 	"github.com/pachyderm/pachyderm/v2/src/internal/serviceenv"
@@ -249,10 +250,17 @@ func (r *Reporter) internalMetrics(metrics *Metrics) {
 	metrics.EnterpriseFailures = enterprisemetrics.GetEnterpriseFailures()
 
 	// Pipeline info
-	resp, err := r.env.PpsServer().ListPipeline(ctx, &pps.ListPipelineRequest{AllowIncomplete: true})
-	if err == nil {
-		metrics.Pipelines = int64(len(resp.PipelineInfo)) // Number of pipelines
-		for _, pi := range resp.PipelineInfo {
+	if err := func() error {
+		lpClient, err := r.env.GetPachClient(ctx).PpsAPIClient.ListPipeline(ctx, &pps.ListPipelineRequest{AllowIncomplete: true})
+		if err != nil {
+			return err
+		}
+		pipelineInfos, err := clientsdk.ListPipelineInfo(lpClient)
+		if err != nil {
+			return err
+		}
+		metrics.Pipelines = int64(len(pipelineInfos)) // Number of pipelines
+		for _, pi := range pipelineInfos {
 			if pi.ParallelismSpec != nil {
 				if metrics.MaxParallelism < pi.ParallelismSpec.Constant {
 					metrics.MaxParallelism = pi.ParallelismSpec.Constant
@@ -344,14 +352,22 @@ func (r *Reporter) internalMetrics(metrics *Metrics) {
 				metrics.CfgTfjob++
 			}
 		}
-	} else {
+		return nil
+	}(); err != nil {
 		log.Errorf("Error getting pipeline metrics: %v", err)
 	}
 
-	ris, err := r.env.PfsServer().ListRepo(ctx, &pfs.ListRepoRequest{})
-	if err == nil {
+	if err := func() error {
+		rClient, err := r.env.GetPachClient(ctx).PfsAPIClient.ListRepo(ctx, &pfs.ListRepoRequest{})
+		if err != nil {
+			return err
+		}
+		repoInfos, err := clientsdk.ListRepoInfo(rClient)
+		if err != nil {
+			return err
+		}
 		var sz, mbranch uint64 = 0, 0
-		for _, ri := range ris.RepoInfo {
+		for _, ri := range repoInfos {
 			if (sz + ri.SizeBytes) < sz {
 				sz = 0xFFFFFFFFFFFFFFFF
 			} else {
@@ -361,11 +377,12 @@ func (r *Reporter) internalMetrics(metrics *Metrics) {
 				mbranch = uint64(len(ri.Branches))
 			}
 		}
-		metrics.Repos = int64(len(ris.RepoInfo))
+		metrics.Repos = int64(len(repoInfos))
 		metrics.Bytes = sz
 		metrics.MaxBranches = mbranch
-	} else {
-		log.Errorf("Error getting repo metrics: %v", err)
+		return nil
+	}(); err != nil {
+		log.Errorf("Error getting repos: %v", err)
 	}
 	//log.Infof("Metrics logged: %v", metrics)
 }

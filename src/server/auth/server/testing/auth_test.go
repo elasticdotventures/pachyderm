@@ -19,6 +19,7 @@ import (
 	"github.com/pachyderm/pachyderm/v2/src/client"
 	"github.com/pachyderm/pachyderm/v2/src/enterprise"
 	"github.com/pachyderm/pachyderm/v2/src/internal/backoff"
+	"github.com/pachyderm/pachyderm/v2/src/internal/clientsdk"
 	"github.com/pachyderm/pachyderm/v2/src/internal/errors"
 	"github.com/pachyderm/pachyderm/v2/src/internal/require"
 	tu "github.com/pachyderm/pachyderm/v2/src/internal/testutil"
@@ -1091,7 +1092,7 @@ func TestListAndInspectRepo(t *testing.T) {
 	// Bob calls ListRepo, and the response must indicate the correct access scope
 	// for each repo (because other tests have run, we may see repos besides the
 	// above. Bob's access to those should be NONE
-	listResp, err := bobClient.PfsAPIClient.ListRepo(bobClient.Ctx(),
+	lrClient, err := bobClient.PfsAPIClient.ListRepo(bobClient.Ctx(),
 		&pfs.ListRepoRequest{})
 	require.NoError(t, err)
 	expectedPermissions := map[string][]auth.Permission{
@@ -1141,7 +1142,8 @@ func TestListAndInspectRepo(t *testing.T) {
 			auth.Permission_PIPELINE_LIST_JOB,
 		},
 	}
-	for _, info := range listResp.RepoInfo {
+	repoInfos, err := clientsdk.ListRepoInfo(lrClient)
+	for _, info := range repoInfos {
 		require.ElementsEqual(t, expectedPermissions[info.Repo.Name], info.AuthInfo.Permissions)
 	}
 

@@ -14,6 +14,7 @@ import (
 	"unicode"
 
 	"github.com/pachyderm/pachyderm/v2/src/client"
+	"github.com/pachyderm/pachyderm/v2/src/internal/clientsdk"
 	"github.com/pachyderm/pachyderm/v2/src/internal/cmdutil"
 	"github.com/pachyderm/pachyderm/v2/src/internal/config"
 	deploycmds "github.com/pachyderm/pachyderm/v2/src/internal/deploy/cmds"
@@ -509,11 +510,15 @@ This resets the cluster to its initial state.`,
 			for _, ri := range repoInfos {
 				repos = append(repos, red(ri.Repo.Name))
 			}
-			resp, err := client.PpsAPIClient.ListPipeline(client.Ctx(), &pps.ListPipelineRequest{AllowIncomplete: true})
+			c, err := client.PpsAPIClient.ListPipeline(client.Ctx(), &pps.ListPipelineRequest{AllowIncomplete: true})
 			if err != nil {
 				return err
 			}
-			for _, pi := range resp.PipelineInfo {
+			pipelineInfos, err := clientsdk.ListPipelineInfo(c)
+			if err != nil {
+				return err
+			}
+			for _, pi := range pipelineInfos {
 				pipelines = append(pipelines, red(pi.Pipeline.Name))
 			}
 			fmt.Println("All ACLs, repos, commits, files, pipelines and jobs will be deleted.")

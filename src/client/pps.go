@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/pachyderm/pachyderm/v2/src/internal/clientsdk"
 	"github.com/pachyderm/pachyderm/v2/src/internal/errors"
 	"github.com/pachyderm/pachyderm/v2/src/internal/errutil"
 	"github.com/pachyderm/pachyderm/v2/src/internal/grpcutil"
@@ -690,14 +691,14 @@ func (c APIClient) InspectPipeline(pipelineName string) (*pps.PipelineInfo, erro
 
 // ListPipeline returns info about all pipelines.
 func (c APIClient) ListPipeline() ([]*pps.PipelineInfo, error) {
-	pipelineInfos, err := c.PpsAPIClient.ListPipeline(
+	client, err := c.PpsAPIClient.ListPipeline(
 		c.Ctx(),
 		&pps.ListPipelineRequest{},
 	)
 	if err != nil {
 		return nil, grpcutil.ScrubGRPC(err)
 	}
-	return pipelineInfos.PipelineInfo, nil
+	return clientsdk.ListPipelineInfo(client)
 }
 
 // ListPipelineHistory returns historical information about pipelines.
@@ -709,12 +710,12 @@ func (c APIClient) ListPipeline() ([]*pps.PipelineInfo, error) {
 // 1: Return the above and the next most recent version
 // 2: etc.
 //-1: Return all historical versions.
-func (c APIClient) ListPipelineHistory(pipeline string, history int64) ([]*pps.PipelineInfo, error) {
+func (c APIClient) ListPipelineHistory(pipeline string, history int64) (_ []*pps.PipelineInfo, retErr error) {
 	var _pipeline *pps.Pipeline
 	if pipeline != "" {
 		_pipeline = NewPipeline(pipeline)
 	}
-	pipelineInfos, err := c.PpsAPIClient.ListPipeline(
+	client, err := c.PpsAPIClient.ListPipeline(
 		c.Ctx(),
 		&pps.ListPipelineRequest{
 			Pipeline: _pipeline,
@@ -724,7 +725,7 @@ func (c APIClient) ListPipelineHistory(pipeline string, history int64) ([]*pps.P
 	if err != nil {
 		return nil, grpcutil.ScrubGRPC(err)
 	}
-	return pipelineInfos.PipelineInfo, nil
+	return clientsdk.ListPipelineInfo(client)
 }
 
 // DeletePipeline deletes a pipeline along with its output Repo.

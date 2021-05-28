@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/pachyderm/pachyderm/v2/src/internal/clientsdk"
 	"github.com/pachyderm/pachyderm/v2/src/internal/errors"
 	"github.com/pachyderm/pachyderm/v2/src/internal/errutil"
 	"github.com/pachyderm/pachyderm/v2/src/internal/grpcutil"
@@ -102,16 +103,32 @@ func (c APIClient) ListRepo() ([]*pfs.RepoInfo, error) {
 
 // ListRepoByType returns info about Repos of the given type
 // The if repoType is empty, all Repos will be included
-func (c APIClient) ListRepoByType(repoType string) ([]*pfs.RepoInfo, error) {
+func (c APIClient) ListRepoByType(repoType string) (_ []*pfs.RepoInfo, retErr error) {
 	request := &pfs.ListRepoRequest{Type: repoType}
-	repoInfos, err := c.PfsAPIClient.ListRepo(
+	client, err := c.PfsAPIClient.ListRepo(
 		c.Ctx(),
 		request,
 	)
 	if err != nil {
 		return nil, grpcutil.ScrubGRPC(err)
 	}
-	return repoInfos.RepoInfo, nil
+	defer func() {
+		if retErr == nil {
+			retErr = client.CloseSend()
+		}
+	}()
+	var repoInfos []*pfs.RepoInfo
+	for {
+		repoInfo, err := client.Recv()
+		if err != nil {
+			if err != io.EOF {
+				break
+			}
+			return nil, err
+		}
+		repoInfos = append(repoInfos, repoInfo)
+	}
+	return repoInfos, nil
 }
 
 // DeleteRepo deletes a repo and reclaims the storage space it was using. Note
@@ -335,7 +352,7 @@ func (c APIClient) InspectBranch(repoName string, branchName string) (*pfs.Branc
 
 // ListBranch lists the active branches on a Repo.
 func (c APIClient) ListBranch(repoName string) ([]*pfs.BranchInfo, error) {
-	branchInfos, err := c.PfsAPIClient.ListBranch(
+	client, err := c.PfsAPIClient.ListBranch(
 		c.Ctx(),
 		&pfs.ListBranchRequest{
 			Repo: NewRepo(repoName),
@@ -344,7 +361,7 @@ func (c APIClient) ListBranch(repoName string) ([]*pfs.BranchInfo, error) {
 	if err != nil {
 		return nil, grpcutil.ScrubGRPC(err)
 	}
-	return branchInfos.BranchInfo, nil
+	return clientsdk.ListBranchInfo(client)
 }
 
 // DeleteBranch deletes a branch, but leaves the commits themselves intact.
