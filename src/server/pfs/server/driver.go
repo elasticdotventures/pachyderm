@@ -271,7 +271,7 @@ func (d *driver) getPermissions(ctx context.Context, repo *pfs.Repo) ([]auth.Per
 	return resp.Permissions, resp.Roles, nil
 }
 
-func (d *driver) listRepo(ctx context.Context, includeAuth bool, repoType string, fn func(*pfs.RepoInfo) error) error {
+func (d *driver) listRepo(ctx context.Context, includeAuth bool, repoType string, cb func(*pfs.RepoInfo) error) error {
 	authSeemsActive := true
 	repoInfo := &pfs.RepoInfo{}
 
@@ -291,24 +291,15 @@ func (d *driver) listRepo(ctx context.Context, includeAuth bool, repoType string
 				return errors.Wrapf(grpcutil.ScrubGRPC(err), "error getting access level for \"%s\"", pretty.CompactPrintRepo(repoInfo.Repo))
 			}
 		}
-		if err := fn(proto.Clone(repoInfo).(*pfs.RepoInfo)); err != nil {
-			return err
-		}
-		return nil
+		return cb(proto.Clone(repoInfo).(*pfs.RepoInfo))
 	}
 
-	var err error
 	if repoType == "" {
 		// blank type means return all
-		err = d.repos.ReadOnly(ctx).List(repoInfo, col.DefaultOptions(), processFunc)
+		return d.repos.ReadOnly(ctx).List(repoInfo, col.DefaultOptions(), processFunc)
 	} else {
-		err = d.repos.ReadOnly(ctx).GetByIndex(pfsdb.ReposTypeIndex, repoType, repoInfo, col.DefaultOptions(), processFunc)
+		return d.repos.ReadOnly(ctx).GetByIndex(pfsdb.ReposTypeIndex, repoType, repoInfo, col.DefaultOptions(), processFunc)
 	}
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (d *driver) deleteAllBranchesFromRepos(txnCtx *txncontext.TransactionContext, repos []pfs.RepoInfo, force bool) error {
