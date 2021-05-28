@@ -112,23 +112,7 @@ func (c APIClient) ListRepoByType(repoType string) (_ []*pfs.RepoInfo, retErr er
 	if err != nil {
 		return nil, grpcutil.ScrubGRPC(err)
 	}
-	defer func() {
-		if retErr == nil {
-			retErr = client.CloseSend()
-		}
-	}()
-	var repoInfos []*pfs.RepoInfo
-	for {
-		repoInfo, err := client.Recv()
-		if err != nil {
-			if err != io.EOF {
-				break
-			}
-			return nil, err
-		}
-		repoInfos = append(repoInfos, repoInfo)
-	}
-	return repoInfos, nil
+	return clientsdk.ListRepoInfo(client)
 }
 
 // DeleteRepo deletes a repo and reclaims the storage space it was using. Note
