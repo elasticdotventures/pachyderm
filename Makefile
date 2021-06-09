@@ -347,9 +347,6 @@ test-worker-helper:
 
 clean: clean-launch clean-launch-kube
 
-compatibility:
-	./etc/build/compatibility.sh
-
 clean-launch-kafka:
 	kubectl delete -f etc/kubernetes-kafka -R
 
@@ -527,7 +524,6 @@ check-buckets:
 	test-worker \
 	test-worker-helper \
 	clean \
-	compatibility \
 	clean-launch-kafka \
 	launch-kafka \
 	clean-launch-stats \
