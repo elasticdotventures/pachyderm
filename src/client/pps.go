@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
@@ -691,8 +692,10 @@ func (c APIClient) InspectPipeline(pipelineName string) (*pps.PipelineInfo, erro
 
 // ListPipeline returns info about all pipelines.
 func (c APIClient) ListPipeline() ([]*pps.PipelineInfo, error) {
+	ctx, cf := context.WithCancel(c.Ctx())
+	defer cf()
 	client, err := c.PpsAPIClient.ListPipeline(
-		c.Ctx(),
+		ctx,
 		&pps.ListPipelineRequest{},
 	)
 	if err != nil {

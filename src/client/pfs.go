@@ -104,9 +104,11 @@ func (c APIClient) ListRepo() ([]*pfs.RepoInfo, error) {
 // ListRepoByType returns info about Repos of the given type
 // The if repoType is empty, all Repos will be included
 func (c APIClient) ListRepoByType(repoType string) (_ []*pfs.RepoInfo, retErr error) {
+	ctx, cf := context.WithCancel(c.Ctx())
+	defer cf()
 	request := &pfs.ListRepoRequest{Type: repoType}
 	client, err := c.PfsAPIClient.ListRepo(
-		c.Ctx(),
+		ctx,
 		request,
 	)
 	if err != nil {
@@ -336,8 +338,10 @@ func (c APIClient) InspectBranch(repoName string, branchName string) (*pfs.Branc
 
 // ListBranch lists the active branches on a Repo.
 func (c APIClient) ListBranch(repoName string) ([]*pfs.BranchInfo, error) {
+	ctx, cf := context.WithCancel(c.Ctx())
+	defer cf()
 	client, err := c.PfsAPIClient.ListBranch(
-		c.Ctx(),
+		ctx,
 		&pfs.ListBranchRequest{
 			Repo: NewRepo(repoName),
 		},

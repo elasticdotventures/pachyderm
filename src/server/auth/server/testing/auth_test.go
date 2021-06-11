@@ -1095,6 +1095,8 @@ func TestListAndInspectRepo(t *testing.T) {
 	lrClient, err := bobClient.PfsAPIClient.ListRepo(bobClient.Ctx(),
 		&pfs.ListRepoRequest{})
 	require.NoError(t, err)
+	repoInfos, err := clientsdk.ListRepoInfo(lrClient)
+	require.NoError(t, err)
 	expectedPermissions := map[string][]auth.Permission{
 		repoOwner: []auth.Permission{
 			auth.Permission_REPO_READ,
@@ -1142,8 +1144,6 @@ func TestListAndInspectRepo(t *testing.T) {
 			auth.Permission_PIPELINE_LIST_JOB,
 		},
 	}
-	repoInfos, err := clientsdk.ListRepoInfo(lrClient)
-	require.NoError(t, err)
 	for _, info := range repoInfos {
 		require.ElementsEqual(t, expectedPermissions[info.Repo.Name], info.AuthInfo.Permissions)
 	}
