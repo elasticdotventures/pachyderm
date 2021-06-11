@@ -7,11 +7,6 @@ import (
 )
 
 func ForEachPipelineInfo(client pps.API_ListPipelineClient, cb func(*pps.PipelineInfo) error) (retErr error) {
-	defer func() {
-		if err := client.CloseSend(); retErr == nil {
-			retErr = err
-		}
-	}()
 	for {
 		x, err := client.Recv()
 		if err != nil {

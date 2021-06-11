@@ -7,11 +7,6 @@ import (
 )
 
 func ForEachBranchInfo(client pfs.API_ListBranchClient, cb func(*pfs.BranchInfo) error) (retErr error) {
-	defer func() {
-		if err := client.CloseSend(); retErr == nil {
-			retErr = err
-		}
-	}()
 	for {
 		x, err := client.Recv()
 		if err != nil {
@@ -39,11 +34,6 @@ func ListBranchInfo(client pfs.API_ListBranchClient) ([]*pfs.BranchInfo, error) 
 }
 
 func ForEachRepoInfo(client pfs.API_ListRepoClient, cb func(*pfs.RepoInfo) error) (retErr error) {
-	defer func() {
-		if err := client.CloseSend(); retErr == nil {
-			retErr = err
-		}
-	}()
 	for {
 		x, err := client.Recv()
 		if err != nil {
