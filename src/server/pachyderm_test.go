@@ -27,6 +27,7 @@ import (
 	"github.com/pachyderm/pachyderm/v2/src/client"
 	"github.com/pachyderm/pachyderm/v2/src/internal/ancestry"
 	"github.com/pachyderm/pachyderm/v2/src/internal/backoff"
+	"github.com/pachyderm/pachyderm/v2/src/internal/clientsdk"
 	"github.com/pachyderm/pachyderm/v2/src/internal/errors"
 	"github.com/pachyderm/pachyderm/v2/src/internal/errutil"
 	"github.com/pachyderm/pachyderm/v2/src/internal/grpcutil"
@@ -8709,7 +8710,7 @@ func TestNoOutputRepoDoesntCrashPPSMaster(t *testing.T) {
 	require.NoErrorWithinTRetry(t, 30*time.Second, func() error {
 		// use list pipeline instead of inspect pipeline because we expect
 		// the spec repo to be gone, which will cause GetPipelineInfo to fail
-		resp, err := c.PpsAPIClient.ListPipeline(
+		lpClient, err := c.PpsAPIClient.ListPipeline(
 			c.Ctx(),
 			&pps.ListPipelineRequest{
 				AllowIncomplete: true,
@@ -8718,8 +8719,12 @@ func TestNoOutputRepoDoesntCrashPPSMaster(t *testing.T) {
 		if err != nil {
 			return grpcutil.ScrubGRPC(err)
 		}
+		pipelineInfos, err := clientsdk.ListPipelineInfo(lpClient)
+		if err != nil {
+			return grpcutil.ScrubGRPC(err)
+		}
 		var pi *pps.PipelineInfo
-		for _, info := range resp.PipelineInfo {
+		for _, info := range pipelineInfos {
 			if info.Pipeline.Name == pipeline {
 				pi = info
 				break
