@@ -235,11 +235,13 @@ func (c APIClient) BlockJob(pipelineName string, jobID string, full bool) (_ *pp
 }
 
 func (c APIClient) inspectJobset(id string, block bool, cb func(*pps.JobInfo) error) (retErr error) {
+	ctx, cf := context.WithCancel(c.Ctx())
+	defer cf()
 	req := &pps.InspectJobsetRequest{
 		Jobset: NewJobset(id),
 		Block:  block,
 	}
-	client, err := c.PpsAPIClient.InspectJobset(c.Ctx(), req)
+	client, err := c.PpsAPIClient.InspectJobset(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -344,8 +346,10 @@ func (c APIClient) ListJobFilterF(pipelineName string, inputCommit []*pfs.Commit
 	if pipelineName != "" {
 		pipeline = NewPipeline(pipelineName)
 	}
+	ctx, cf := context.WithCancel(c.Ctx())
+	defer cf()
 	client, err := c.PpsAPIClient.ListJob(
-		c.Ctx(),
+		ctx,
 		&pps.ListJobRequest{
 			Pipeline:    pipeline,
 			InputCommit: inputCommit,
@@ -491,10 +495,9 @@ func (c APIClient) ListDatumInputAll(input *pps.Input) (_ []*pps.DatumInfo, retE
 }
 
 func (c APIClient) listDatum(req *pps.ListDatumRequest, cb func(*pps.DatumInfo) error) (retErr error) {
-	client, err := c.PpsAPIClient.ListDatum(
-		c.Ctx(),
-		req,
-	)
+	ctx, cf := context.WithCancel(c.Ctx())
+	defer cf()
+	client, err := c.PpsAPIClient.ListDatum(ctx, req)
 	if err != nil {
 		return err
 	}

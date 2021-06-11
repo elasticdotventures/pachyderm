@@ -263,7 +263,9 @@ func (c APIClient) ListCommitF(repo *pfs.Repo, to, from *pfs.Commit, number uint
 		To:      to,
 		From:    from,
 	}
-	stream, err := c.PfsAPIClient.ListCommit(c.Ctx(), req)
+	ctx, cf := context.WithCancel(c.Ctx())
+	defer cf()
+	stream, err := c.PfsAPIClient.ListCommit(ctx, req)
 	if err != nil {
 		return grpcutil.ScrubGRPC(err)
 	}
