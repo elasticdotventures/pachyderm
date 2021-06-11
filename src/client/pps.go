@@ -379,8 +379,10 @@ func (c APIClient) ListJobFilterF(pipelineName string, inputCommit []*pfs.Commit
 // SubscribeJob calls the given callback with each open job in the given
 // pipeline until canceled.
 func (c APIClient) SubscribeJob(pipelineName string, full bool, cb func(*pps.JobInfo) error) error {
+	ctx, cf := context.WithCancel(c.Ctx())
+	defer cf()
 	client, err := c.PpsAPIClient.SubscribeJob(
-		c.Ctx(),
+		ctx,
 		&pps.SubscribeJobRequest{
 			Pipeline: NewPipeline(pipelineName),
 			Full:     full,
@@ -721,8 +723,10 @@ func (c APIClient) ListPipelineHistory(pipeline string, history int64) (_ []*pps
 	if pipeline != "" {
 		_pipeline = NewPipeline(pipeline)
 	}
+	ctx, cf := context.WithCancel(c.Ctx())
+	defer cf()
 	client, err := c.PpsAPIClient.ListPipeline(
-		c.Ctx(),
+		ctx,
 		&pps.ListPipelineRequest{
 			Pipeline: _pipeline,
 			History:  history,

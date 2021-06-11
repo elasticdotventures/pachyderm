@@ -8710,8 +8710,10 @@ func TestNoOutputRepoDoesntCrashPPSMaster(t *testing.T) {
 	require.NoErrorWithinTRetry(t, 30*time.Second, func() error {
 		// use list pipeline instead of inspect pipeline because we expect
 		// the spec repo to be gone, which will cause GetPipelineInfo to fail
+		ctx, cf := context.WithCancel(c.Ctx())
+		defer cf()
 		lpClient, err := c.PpsAPIClient.ListPipeline(
-			c.Ctx(),
+			ctx,
 			&pps.ListPipelineRequest{
 				AllowIncomplete: true,
 			},

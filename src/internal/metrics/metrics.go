@@ -243,7 +243,7 @@ func (r *Reporter) internalMetrics(metrics *Metrics) {
 	// We should not return due to an error
 	// Activation code
 	ctx, cf := context.WithCancel(context.Background())
-	cf()
+	defer cf()
 	enterpriseState, err := r.env.EnterpriseServer().GetState(ctx, &enterprise.GetStateRequest{})
 	if err == nil {
 		metrics.ActivationCode = enterpriseState.ActivationCode

@@ -1181,10 +1181,12 @@ func TestNoOutputRepoDoesntCrashPPSMaster(t *testing.T) {
 
 	// make sure the pipeline is failed
 	require.NoErrorWithinTRetry(t, 30*time.Second, func() error {
+		ctx, cf := context.WithCancel(aliceClient.Ctx())
+		defer cf()
 		// use list pipeline instead of inspect pipeline because we expect
 		// the spec repo to be gone, which will cause GetPipelineInfo to fail
 		lpClient, err := aliceClient.PpsAPIClient.ListPipeline(
-			aliceClient.Ctx(),
+			ctx,
 			&pps.ListPipelineRequest{
 				AllowIncomplete: true,
 			},
